@@ -10,6 +10,8 @@ or Spanish**.
 
 **Live:** https://multilingual-student-platform-navig.vercel.app
 
+![The NavigSA dashboard: application and document counts, recommended service providers, and verification status](docs/screenshot.png)
+
 ---
 
 ## Features
