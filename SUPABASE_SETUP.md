@@ -27,6 +27,7 @@ Open **SQL Editor** in the left sidebar. For each file below, click
 | 1 | `supabase/migrations/0001_init.sql` | Creates `profiles`, `applications`, `documents`, `services`, plus the trigger that makes a profile row on signup |
 | 2 | `supabase/migrations/0002_rls_and_storage.sql` | Turns on Row Level Security, adds the per-user policies, creates the private `documents` storage bucket |
 | 3 | `supabase/migrations/0003_seed_services.sql` | Fills the marketplace with the five providers the prototype used to hardcode |
+| 4 | `supabase/migrations/0004_lock_privileged_columns.sql` | Stops a student approving their own documents or verifying themselves |
 
 Each should report **Success. No rows returned**.
 
@@ -94,25 +95,26 @@ path.
 Two things are deliberately **not** student-writable:
 
 - **`documents.status`** — students upload; a reviewer marks documents verified or
-  rejected. Do that from the dashboard or a server-side job using the
-  `service_role` key, which bypasses RLS.
+  rejected.
 - **`profiles.verification_status`** — same reasoning.
 
-The RLS policy currently lets a student update their own `documents` row, which
-includes `status`. If you want that locked down properly, replace the update
-policy with a column-level grant:
+Row Level Security scopes rows to their owner, but it cannot say "this column,
+not that one" — and "it is your row" is not the same as "you may change every
+column in it". Migration `0004_lock_privileged_columns.sql` closes that with
+Postgres column privileges, which apply underneath RLS: a request touching a
+column with no grant is rejected outright.
 
-```sql
-drop policy "update own documents" on public.documents;
+Without `0004`, a signed-in student could open the browser console and run:
 
-revoke update on public.documents from authenticated;
-grant update (name, type, application_id) on public.documents to authenticated;
-
-create policy "update own documents"
-  on public.documents for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+```js
+supabase.from('documents').update({ status: 'verified' }).eq('id', theirDocId)
+supabase.from('profiles').update({ verification_status: 'verified' }).eq('id', theirId)
 ```
+
+Both would have succeeded — the rows genuinely are theirs.
+
+A reviewer sets those columns server-side with the `service_role` key, which
+bypasses both RLS and the column grants. That key must never reach the browser.
 
 ## Deploying
 

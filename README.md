@@ -113,9 +113,11 @@ shouldn't be able to approve their own paperwork:
 - `documents.status`
 - `profiles.verification_status`
 
-Both should be set by a reviewer using the `service_role` key server-side.
-See [SUPABASE_SETUP.md](SUPABASE_SETUP.md#security-model) for the column-level
-grant that locks this down.
+Both are set by a reviewer using the `service_role` key server-side. Migration
+`0004` enforces this with Postgres column privileges, so a signed-in student
+cannot approve their own documents or mark themselves verified even by calling
+the database directly from the console. See
+[SUPABASE_SETUP.md](SUPABASE_SETUP.md#security-model).
 
 > **Never put the `service_role` key in this project.** Anything in a `VITE_`
 > variable is compiled into the JavaScript bundle your visitors download, and
