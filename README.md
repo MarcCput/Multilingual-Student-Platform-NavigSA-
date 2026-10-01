@@ -81,6 +81,11 @@ dashboard: **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)**.
 | `npm run build` | Production build into `dist/` |
 | `npm run typecheck` | `tsc --noEmit` — **Vite only transpiles and never checks types, so run this separately** |
 
+To verify the signed-in half of the app (and that the security rules hold),
+sign in and paste [`scripts/self-test.js`](scripts/self-test.js) into the browser
+console. It exercises every authenticated operation plus the attacks the
+backend should refuse, then deletes everything it created.
+
 ---
 
 ## Data model
