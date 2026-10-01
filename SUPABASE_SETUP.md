@@ -28,6 +28,7 @@ Open **SQL Editor** in the left sidebar. For each file below, click
 | 2 | `supabase/migrations/0002_rls_and_storage.sql` | Turns on Row Level Security, adds the per-user policies, creates the private `documents` storage bucket |
 | 3 | `supabase/migrations/0003_seed_services.sql` | Fills the marketplace with the five providers the prototype used to hardcode |
 | 4 | `supabase/migrations/0004_lock_privileged_columns.sql` | Stops a student approving their own documents or verifying themselves |
+| 5 | `supabase/migrations/0005_harden_functions.sql` | Pins a function search_path and takes the signup trigger off the public RPC surface |
 
 Each should report **Success. No rows returned**.
 
