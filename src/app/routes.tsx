@@ -8,6 +8,11 @@ import { MarketplacePage } from './pages/MarketplacePage';
 import { ApplicationsPage } from './pages/ApplicationsPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { BookingsPage } from './pages/BookingsPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { ProviderPage } from './pages/ProviderPage';
+import { AdminPage } from './pages/AdminPage';
+import { GuidesPage } from './pages/GuidesPage';
 
 export const router = createBrowserRouter([
   {
@@ -15,6 +20,8 @@ export const router = createBrowserRouter([
     Component: RootLayout,
     children: [
       { index: true, Component: LoginPage },
+      // Reading material is open to visitors who have not signed up yet.
+      { path: 'guides', Component: GuidesPage },
       {
         Component: ProtectedRoute,
         children: [
@@ -23,6 +30,10 @@ export const router = createBrowserRouter([
           { path: 'marketplace', Component: MarketplacePage },
           { path: 'applications', Component: ApplicationsPage },
           { path: 'documents', Component: DocumentsPage },
+          { path: 'bookings', Component: BookingsPage },
+          { path: 'notifications', Component: NotificationsPage },
+          { path: 'provider', Component: ProviderPage },
+          { path: 'admin', Component: AdminPage },
           { path: 'profile', Component: ProfilePage },
         ],
       },

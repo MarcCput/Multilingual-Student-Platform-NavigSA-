@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router';
 import { listApplications, listDocuments, listServices } from '../../lib/api';
 import { useAsyncData } from '../../lib/useAsyncData';
+import { ShareTestimonial } from '../components/ShareTestimonial';
 import type { Application, DocumentWithApplication, Service } from '../../lib/database.types';
 import {
   FileText,
@@ -302,6 +303,8 @@ export const DashboardPage = () => {
                 </Link>
               </div>
             </div>
+
+            <ShareTestimonial />
 
             {profile?.verification_status === 'verified' ? (
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">

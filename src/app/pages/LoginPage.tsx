@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { isSupabaseConfigured } from '../../lib/supabase';
+import { TestimonialWall } from '../components/TestimonialWall';
 import { Mail, Lock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 export const LoginPage = () => {
@@ -223,6 +224,8 @@ export const LoginPage = () => {
           </div>
         </div>
 
+        <TestimonialWall />
+
         <div className="mt-8 text-center">
           <div className="flex items-center justify-center gap-4 text-sm text-slate-500">
             <div className="flex items-center gap-2">
@@ -234,6 +237,12 @@ export const LoginPage = () => {
               <span>Verified Providers</span>
             </div>
           </div>
+          <a
+            href="/guides"
+            className="inline-block mt-4 text-sm text-blue-600 hover:text-blue-700 underline"
+          >
+            Read our guides on visas, SAQA and applying
+          </a>
         </div>
       </div>
     </div>

@@ -1,10 +1,23 @@
 import { supabase } from './supabase';
 import type {
+  AdminAction,
+  AdminUserRow,
   Application,
+  Booking,
+  BookingStatus,
+  BookingWithService,
   DocumentType,
   DocumentWithApplication,
+  Guide,
+  GuideCategory,
+  NotificationRow,
   Profile,
+  Provider,
+  ProviderStatus,
+  Review,
   Service,
+  Testimonial,
+  TestimonialStatus,
 } from './database.types';
 
 /** Throws with Supabase's message so callers can surface it in the UI. */
@@ -153,4 +166,263 @@ export function formatFileSize(bytes: number): string {
   if (bytes <= 0) return '0 KB';
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// --- bookings (US-17) ------------------------------------------------------
+
+export async function listBookings(userId: string): Promise<BookingWithService[]> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*, services ( name, provider, price, category ), reviews ( id, rating )')
+    .eq('user_id', userId)
+    .order('scheduled_for', { ascending: false });
+  return unwrap(data, error) ?? [];
+}
+
+export async function createBooking(
+  userId: string,
+  input: { service_id: string; scheduled_for: string; notes?: string | null },
+): Promise<Booking> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .insert({ ...input, user_id: userId })
+    .select()
+    .single();
+  return unwrap(data, error);
+}
+
+export async function cancelBooking(bookingId: string): Promise<void> {
+  const { error } = await supabase.rpc('cancel_booking', { p_booking: bookingId });
+  if (error) throw new Error(error.message);
+}
+
+/** Provider or administrator moving a booking forward. */
+export async function setBookingStatus(
+  bookingId: string,
+  status: BookingStatus,
+): Promise<void> {
+  const { error } = await supabase.rpc('set_booking_status', {
+    p_booking: bookingId,
+    p_status: status,
+  });
+  if (error) throw new Error(error.message);
+}
+
+// --- notifications (US-18) -------------------------------------------------
+
+export async function listNotifications(userId: string): Promise<NotificationRow[]> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(100);
+  return unwrap(data, error) ?? [];
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .is('read_at', null);
+  if (error) throw new Error(error.message);
+}
+
+// --- provider registration (US-19) -----------------------------------------
+
+export async function getMyProvider(userId: string): Promise<Provider | null> {
+  const { data, error } = await supabase
+    .from('providers')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return unwrap(data, error);
+}
+
+/** Accreditation documents go into the same private bucket, under the owner's folder. */
+export async function uploadAccreditation(userId: string, file: File): Promise<string> {
+  const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+  const path = `${userId}/accreditation-${Date.now()}-${safeName}`;
+  const { error } = await supabase.storage
+    .from('documents')
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+type ProviderDraft = Pick<
+  Provider,
+  | 'business_name'
+  | 'registration_number'
+  | 'contact_email'
+  | 'contact_phone'
+  | 'category'
+  | 'description'
+  | 'location'
+  | 'accreditation_path'
+>;
+
+export async function registerProvider(
+  userId: string,
+  input: ProviderDraft,
+): Promise<Provider> {
+  const { data, error } = await supabase
+    .from('providers')
+    .insert({ ...input, user_id: userId })
+    .select()
+    .single();
+  return unwrap(data, error);
+}
+
+// --- reviews (US-22) -------------------------------------------------------
+
+export async function listReviewsForService(serviceId: string): Promise<Review[]> {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('service_id', serviceId)
+    .eq('removed', false)
+    .order('created_at', { ascending: false });
+  return unwrap(data, error) ?? [];
+}
+
+export async function createReview(
+  userId: string,
+  input: { booking_id: string; service_id: string; rating: number; comment?: string | null },
+): Promise<Review> {
+  const { data, error } = await supabase
+    .from('reviews')
+    .insert({ ...input, user_id: userId })
+    .select()
+    .single();
+  return unwrap(data, error);
+}
+
+// --- testimonials (US-23) --------------------------------------------------
+
+/** Readable without signing in: these appear on the landing page. */
+export async function listApprovedTestimonials(): Promise<Testimonial[]> {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('*')
+    .eq('status', 'approved')
+    .order('approved_at', { ascending: false })
+    .limit(12);
+  return unwrap(data, error) ?? [];
+}
+
+export async function submitTestimonial(
+  userId: string,
+  input: { quote: string; display_name?: string | null; name_consent: boolean },
+): Promise<Testimonial> {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .insert({ ...input, user_id: userId })
+    .select()
+    .single();
+  return unwrap(data, error);
+}
+
+// --- educational content (US-25) -------------------------------------------
+
+export async function listGuides(
+  language: string,
+  category?: GuideCategory | 'all',
+): Promise<Guide[]> {
+  let q = supabase.from('guides').select('*').eq('published', true);
+  if (category && category !== 'all') q = q.eq('category', category);
+  const { data, error } = await q.order('category');
+  const all: Guide[] = unwrap(data, error) ?? [];
+  // Prefer the reader's language, falling back to English where no translation exists.
+  const inLang = all.filter((g) => g.language === language);
+  const slugs = new Set(inLang.map((g) => g.slug));
+  return [...inLang, ...all.filter((g) => g.language === 'en' && !slugs.has(g.slug))];
+}
+
+export async function getGuide(slug: string, language: string): Promise<Guide | null> {
+  const { data, error } = await supabase
+    .from('guides')
+    .select('*')
+    .eq('slug', slug)
+    .in('language', [language, 'en'])
+    .eq('published', true);
+  const rows: Guide[] = unwrap(data, error) ?? [];
+  return rows.find((g) => g.language === language) ?? rows[0] ?? null;
+}
+
+// --- administration (US-21) ------------------------------------------------
+
+export async function adminSearchUsers(query = ''): Promise<AdminUserRow[]> {
+  const { data, error } = await supabase.rpc('admin_search_users', { p_query: query });
+  return unwrap(data, error) ?? [];
+}
+
+export async function adminSetSuspended(
+  userId: string,
+  suspended: boolean,
+  reason?: string | null,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_set_suspended', {
+    p_user: userId,
+    p_suspended: suspended,
+    p_reason: reason ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function adminListProviders(): Promise<Provider[]> {
+  const { data, error } = await supabase.rpc('admin_pending_providers');
+  return unwrap(data, error) ?? [];
+}
+
+export async function adminSetProviderStatus(
+  providerId: string,
+  status: ProviderStatus,
+  reason?: string | null,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_set_provider_status', {
+    p_provider: providerId,
+    p_status: status,
+    p_reason: reason ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function adminListTestimonials(): Promise<Testimonial[]> {
+  const { data, error } = await supabase.rpc('admin_all_testimonials');
+  return unwrap(data, error) ?? [];
+}
+
+export async function adminSetTestimonialStatus(
+  id: string,
+  status: TestimonialStatus,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_set_testimonial_status', {
+    p_id: id,
+    p_status: status,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function adminRemoveReview(id: string, reason: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_remove_review', { p_id: id, p_reason: reason });
+  if (error) throw new Error(error.message);
+}
+
+export async function adminListActions(): Promise<AdminAction[]> {
+  const { data, error } = await supabase
+    .from('admin_actions')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100);
+  return unwrap(data, error) ?? [];
 }
