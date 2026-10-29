@@ -13,6 +13,7 @@ import type {
   NotificationRow,
   Profile,
   Provider,
+  ProviderBooking,
   ProviderStatus,
   Review,
   Service,
@@ -424,5 +425,55 @@ export async function adminListActions(): Promise<AdminAction[]> {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(100);
+  return unwrap(data, error) ?? [];
+}
+
+// --- provider: own services and bookings -----------------------------------
+
+export async function listMyServices(providerId: string): Promise<Service[]> {
+  const { data, error } = await supabase
+    .from('services')
+    .select('*')
+    .eq('provider_id', providerId)
+    .order('created_at', { ascending: false });
+  return unwrap(data, error) ?? [];
+}
+
+/**
+ * Rating, review count, featured and the verified shield are not sent: they
+ * describe the provider rather than belong to it, and the database refuses
+ * them from this role. The display name is filled in by a trigger.
+ */
+export async function createService(
+  providerId: string,
+  input: {
+    name: string;
+    category: Service['category'];
+    description: string | null;
+    price: string | null;
+    location: string | null;
+    delivery_time: string | null;
+  },
+): Promise<Service> {
+  const { data, error } = await supabase
+    .from('services')
+    .insert({ ...input, provider_id: providerId, is_active: true })
+    .select()
+    .single();
+  return unwrap(data, error);
+}
+
+/** Services with bookings cannot be deleted, so listings are switched off instead. */
+export async function setServiceActive(id: string, active: boolean): Promise<void> {
+  const { error } = await supabase.from('services').update({ is_active: active }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function listProviderBookings(providerId: string): Promise<ProviderBooking[]> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*, services!inner ( name, provider_id )')
+    .eq('services.provider_id', providerId)
+    .order('scheduled_for', { ascending: true });
   return unwrap(data, error) ?? [];
 }

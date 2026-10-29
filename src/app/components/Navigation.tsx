@@ -45,15 +45,15 @@ export const Navigation = () => {
     { path: '/guides', label: t('nav.guides'), icon: BookOpen },
   ];
 
-  // Shown only to the people they apply to. The database enforces the same
-  // boundary regardless of what the menu displays.
+  // Admin is shown only to admins; the database enforces the same boundary
+  // whatever the menu displays. Provider is open to everyone because the same
+  // page is where anyone registers, and where a pending or verified provider
+  // (who may also be an admin) manages their listing.
   const roleItems = [
     ...(profile?.role === 'admin'
       ? [{ path: '/admin', label: t('nav.admin'), icon: ShieldCheck }]
       : []),
-    ...(profile?.role === 'provider'
-      ? [{ path: '/provider', label: t('nav.provider'), icon: Building2 }]
-      : []),
+    { path: '/provider', label: t('nav.provider'), icon: Building2 },
   ];
 
   const allItems = [...navItems, ...roleItems];

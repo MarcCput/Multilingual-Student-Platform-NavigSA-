@@ -3,6 +3,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyProvider, registerProvider, uploadAccreditation } from '../../lib/api';
 import { useAsyncData } from '../../lib/useAsyncData';
+import { ProviderServices } from '../components/ProviderServices';
+import { ProviderBookings } from '../components/ProviderBookings';
 import type { Provider, ServiceCategory } from '../../lib/database.types';
 import {
   AlertCircle,
@@ -178,6 +180,13 @@ export const ProviderPage = () => {
               )}
             </div>
           </div>
+
+          {provider.status !== 'rejected' && (
+            <>
+              <ProviderServices provider={provider} />
+              <ProviderBookings provider={provider} />
+            </>
+          )}
         </div>
       </div>
     );

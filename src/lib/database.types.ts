@@ -227,3 +227,8 @@ export interface AdminAction {
   detail: Record<string, unknown>;
   created_at: string;
 }
+
+/** A booking as a provider sees it: the service it is for, no student details. */
+export interface ProviderBooking extends Booking {
+  services: { name: string; provider_id: string } | null;
+}
