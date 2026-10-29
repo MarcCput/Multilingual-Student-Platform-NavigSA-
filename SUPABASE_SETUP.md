@@ -29,6 +29,11 @@ Open **SQL Editor** in the left sidebar. For each file below, click
 | 3 | `supabase/migrations/0003_seed_services.sql` | Fills the marketplace with the five providers the prototype used to hardcode |
 | 4 | `supabase/migrations/0004_lock_privileged_columns.sql` | Stops a student approving their own documents or verifying themselves |
 | 5 | `supabase/migrations/0005_harden_functions.sql` | Pins a function search_path and takes the signup trigger off the public RPC surface |
+| 6 | `supabase/migrations/0006_bookings_providers_admin.sql` | Adds providers, bookings, notifications, reviews, testimonials, guides and the admin audit log, with the notification triggers and the daily deadline-reminder function |
+| 7 | `supabase/migrations/0007_rls_for_new_tables.sql` | Row Level Security and column grants for those tables, plus the audited admin and booking functions |
+| 8 | `supabase/migrations/0008_enforce_suspension.sql` | Makes a suspended account unable to create anything |
+| 9 | `supabase/migrations/0009_provider_services.sql` | Lets providers list services without being able to set their own rating, featured flag or verified shield |
+| 10 | `supabase/migrations/0010_review_ratings.sql` | Derives each service's rating and review count from its reviews |
 
 Each should report **Success. No rows returned**.
 
